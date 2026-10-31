@@ -1,140 +1,180 @@
-// === НАСТРОЙКИ TELEGRAM (Заполните своими данными) ===
-const TG_BOT_TOKEN = '9063521967:AAFnqr3V_N0lL6jMU0ugCZ1g4mAQI4eaDQk'; // Например: '6012345678:AAH...'
-const TG_CHAT_ID = '1976088155';     // Например: '123456789'
-
-// Инициализация
-document.addEventListener('DOMContentLoaded', () => {
-    checkWorkStatus();
-    // Устанавливаем минимальную дату сегодня
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('bookingDate').min = today;
-    document.getElementById('bookingDate').value = today;
-    updateTimeSlots();
-});
-
-// Навигация
+// --- Управление экранами ---
 function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    // Простая логика подсветки кнопок (можно улучшить)
-    const navMap = {'screen-home':0, 'screen-prices':1, 'screen-booking':2, 'screen-contacts':3};
-    if(navMap[screenId] !== undefined) {
+    // Обновляем активную кнопку в нижнем меню
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    const navMap = {
+        'screen-home': 0, 'screen-prices': 1, 'screen-booking': 2, 'screen-contacts': 3
+    };
+    if (navMap[screenId] !== undefined) {
         document.querySelectorAll('.nav-btn')[navMap[screenId]].classList.add('active');
     }
-    window.scrollTo(0,0);
 }
 
-// Проверка статуса работы
+// --- Проверка статуса работы ---
 function checkWorkStatus() {
     const now = new Date();
-    const day = now.getDay(); // 0=Вс, 1=Пн...
+    const day = now.getDay(); // 0 = Вс, 1 = Пн, ..., 6 = Сб
     const hour = now.getHours();
     
     let isOpen = false;
-    let closeTime = '';
+    let closeTime = "";
 
-    if (day >= 1 && day <= 5) { if (hour >= 8 && hour < 18) { isOpen = true; closeTime = '18:00'; } }
-    else if (day === 6) { if (hour >= 8 && hour < 17) { isOpen = true; closeTime = '17:00'; } }
-    else if (day === 0) { if (hour >= 8 && hour < 16) { isOpen = true; closeTime = '16:00'; } }
+    if (day >= 1 && day <= 5) { // Пн-Пт
+        if (hour >= 8 && hour < 18) { isOpen = true; closeTime = "18:00"; }
+    } else if (day === 6) { // Сб
+        if (hour >= 8 && hour < 17) { isOpen = true; closeTime = "17:00"; }
+    } else if (day === 0) { // Вс
+        if (hour >= 8 && hour < 16) { isOpen = true; closeTime = "16:00"; }
+    }
 
     const statusEl = document.getElementById('workStatus');
     if (isOpen) {
-        statusEl.textContent = `🟢 Открыто до ${closeTime}`;
-        statusEl.style.background = 'rgba(39, 174, 96, 0.3)';
+        statusEl.innerHTML = `<span style="color: #2ecc71;">● Открыто до ${closeTime}</span>`;
     } else {
-        statusEl.textContent = '🔴 Сейчас закрыто';
-        statusEl.style.background = 'rgba(231, 76, 60, 0.3)';
+        statusEl.innerHTML = `<span style="color: #e74c3c;">● Сейчас закрыто</span>`;
     }
 }
 
-// Генерация временных слотов
+// --- Генерация доступных слотов времени ---
 function updateTimeSlots() {
-    const service = document.getElementById('serviceSelect').value;
-    const dateStr = document.getElementById('bookingDate').value;
+    const dateInput = document.getElementById('bookingDate');
     const container = document.getElementById('timeSlotsContainer');
-    container.innerHTML = '';
-    document.getElementById('selectedTime').value = '';
-
-    if (!dateStr) return;
-
-    const date = new Date(dateStr);
-    const day = date.getDay();
+    const selectedTimeInput = document.getElementById('selectedTime');
     
-    let openHour = 8, closeHour = 18;
-    if (day === 6) closeHour = 17;
-    if (day === 0) closeHour = 16;
+    // Сбрасываем выбранное время при смене даты
+    selectedTimeInput.value = '';
+    container.innerHTML = '';
 
-    const duration = (service.includes('Сход-развал')) ? 1.5 : 1.0;
-    const step = 30; // шаг проверки в минутах
+    if (!dateInput.value) return;
 
-    let currentHour = openHour;
-    let currentMin = 0;
+    const selectedDate = new Date(dateInput.value);
+    const today = new Date();
+    const isToday = selectedDate.toDateString() === today.toDateString();
+    const currentHour = today.getHours();
 
-    while (true) {
-        const endMin = currentMin + (duration * 60);
-        const endHour = currentHour + Math.floor(endMin / 60);
-        const finalMin = endMin % 60;
+    // Определяем рабочие часы в зависимости от дня недели
+    const day = selectedDate.getDay();
+    let startHour = 8, endHour = 18;
+    if (day === 6) endHour = 17; // Суббота
+    if (day === 0) endHour = 16; // Воскресенье
 
-        if (endHour > closeHour || (endHour === closeHour && finalMin > 0)) {
-            break; // Время вышло за пределы рабочего дня
+    let hasAvailableSlots = false;
+
+    // Генерируем слоты с шагом в 1 час
+    for (let h = startHour; h < endHour; h++) {
+        // ГЛАВНОЕ ИСПРАВЛЕНИЕ: Если сегодня, пропускаем часы, которые уже прошли + 1 час на подготовку
+        if (isToday && h <= currentHour) {
+            continue;
         }
 
-        const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
+        hasAvailableSlots = true;
+        const timeString = `${h}:00`;
         
-        const slotBtn = document.createElement('div');
-        slotBtn.className = 'time-slot';
-        slotBtn.textContent = timeStr;
-        slotBtn.onclick = () => selectTime(slotBtn, timeStr);
-        container.appendChild(slotBtn);
+        const btn = document.createElement('button');
+        btn.className = 'time-slot-btn';
+        btn.textContent = timeString;
+        btn.onclick = function() {
+            // Убираем выделение со всех кнопок
+            document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+            // Выделяем нажатую
+            this.classList.add('selected');
+            selectedTimeInput.value = timeString;
+        };
+        container.appendChild(btn);
+    }
 
-        currentMin += step;
-        if (currentMin >= 60) {
-            currentHour += 1;
-            currentMin -= 60;
-        }
+    if (!hasAvailableSlots) {
+        container.innerHTML = '<p class="no-slots">На сегодня время для записи уже закончилось. Пожалуйста, выберите другой день.</p>';
     }
 }
 
-function selectTime(element, time) {
-    document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
-    element.classList.add('selected');
-    document.getElementById('selectedTime').value = time;
-}
-
-// Отправка в Telegram
-async function submitBooking() {
+// --- Отправка заявки ---
+function submitBooking() {
     const service = document.getElementById('serviceSelect').value;
-    const car = document.getElementById('carModel').value;
+    const car = document.getElementById('carModel').value.trim();
     const date = document.getElementById('bookingDate').value;
     const time = document.getElementById('selectedTime').value;
-    const name = document.getElementById('clientName').value;
-    const phone = document.getElementById('clientPhone').value;
+    const name = document.getElementById('clientName').value.trim();
+    const phone = document.getElementById('clientPhone').value.trim();
 
-    if (!car || !time || !name || !phone) {
+    // Валидация
+    if (!car || !date || !time || !name || !phone) {
         alert('Пожалуйста, заполните все поля и выберите время!');
         return;
     }
 
-    const message = `🔔 *Новая запись на сайте!*%0A%0A🔧 *Услуга:* ${service}%0A🚗 *Авто:* ${car}%0A📅 *Дата:* ${date}%0A⏰ *Время:* ${time}%0A👤 *Клиент:* ${name}%0A📞 *Телефон:* ${phone}`;
+    // Формируем сообщение для Telegram
+    const message = `🔔 *Новая заявка на запись!*%0A%0A` +
+                    `🔧 *Услуга:* ${service}%0A` +
+                    `🚗 *Авто:* ${car}%0A` +
+                    `📅 *Дата:* ${date}%0A` +
+                    `⏰ *Время:* ${time}%0A` +
+                    `👤 *Клиент:* ${name}%0A` +
+                    `📞 *Телефон:* ${phone}%0A%0A` +
+                    `⚠️ *Требуется подтверждение мастером!*`;
 
-    const url = `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage?chat_id=${TG_CHAT_ID}&text=${message}&parse_mode=Markdown`;
-
-    try {
-        const response = await fetch(url);
-        if (response.ok) {
-            alert('✅ Заявка успешно отправлена! Мастер свяжется с вами для подтверждения.');
-            // Сброс формы
-            document.getElementById('carModel').value = '';
-            document.getElementById('clientName').value = '';
-            document.getElementById('clientPhone').value = '';
-            document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
-            showScreen('screen-home');
-        } else {
-            alert('❌ Ошибка отправки. Пожалуйста, позвоните нам по телефону.');
-        }
-    } catch (error) {
-        alert('❌ Ошибка сети. Пожалуйста, позвоните нам по телефону.');
+    // ЗАМЕНИТЕ 'ВАШ_ТОКЕН' и 'ВАШ_CHAT_ID' на реальные данные от @BotFather
+    const BOT_TOKEN = 'ВАШ_ТОКЕН'; 
+    const CHAT_ID = 'ВАШ_CHAT_ID';
+    
+    // Если токена нет, показываем демо-успех (для теста)
+    if (BOT_TOKEN === 'ВАШ_ТОКЕН') {
+        alert('✅ Заявка сформирована! (Вставьте реальный токен бота в script.js для отправки в Telegram)');
+        console.log(decodeURIComponent(message));
+        return;
     }
+
+    // Отправка в Telegram
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${message}&parse_mode=Markdown`;
+    
+    fetch(url)
+        .then(response => {
+            if (response.ok) {
+                alert('✅ Заявка успешно отправлена! Мастер свяжется с вами для подтверждения.');
+                // Очистка формы
+                document.getElementById('carModel').value = '';
+                document.getElementById('clientName').value = '';
+                document.getElementById('clientPhone').value = '';
+                document.getElementById('selectedTime').value = '';
+                document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+                showScreen('screen-home');
+            } else {
+                alert('❌ Ошибка отправки. Пожалуйста, позвоните нам по телефону.');
+            }
+        })
+        .catch(error => {
+            alert('❌ Ошибка сети. Пожалуйста, позвоните нам по телефону.');
+        });
 }
+
+// --- Инициализация при загрузке ---
+document.addEventListener('DOMContentLoaded', () => {
+    checkWorkStatus();
+    
+    // Устанавливаем минимальную дату = сегодня
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('bookingDate').min = today;
+    document.getElementById('bookingDate').value = today;
+    
+    updateTimeSlots();
+
+    // Регистрация Service Worker для PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(console.error);
+        });
+    }
+});
+
+// Маска для телефона (простая)
+document.getElementById('clientPhone').addEventListener('input', function (e) {
+    let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
+    if (!x[2] && x[1] !== '') {
+        e.target.value = x[1] === '8' ? '8' : '+7';
+    } else {
+        e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + (x[3] ? ') ' + x[3] : '') + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
+    }
+});
