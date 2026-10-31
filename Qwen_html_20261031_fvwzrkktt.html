@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Форум-Авто | Запись онлайн</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="stylesheet" href="style.css">
+    <!-- Иконки -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Шапка -->
+    <header class="app-header">
+        <div class="logo">
+            <i class="fa-solid fa-car-side"></i> Форум-Авто
+        </div>
+        <div class="status" id="workStatus">Проверка статуса...</div>
+    </header>
+
+    <!-- Основной контент -->
+    <main id="mainContent">
+        
+        <!-- Экран 1: Главная -->
+        <section id="screen-home" class="screen active">
+            <div class="hero-card">
+                <h2>Профессиональный автосервис в Альметьевске</h2>
+                <div class="rating-block">
+                    <span class="stars">⭐ 4.2</span>
+                    <span class="reviews-count">96 оценок</span>
+                </div>
+                <a href="https://2gis.ru/almetevsk/firm/70000001037143884/tab/reviews" target="_blank" class="btn btn-outline">
+                    <i class="fa-solid fa-comment-dots"></i> Читать отзывы на 2ГИС
+                </a>
+                <button class="btn btn-primary" onclick="showScreen('screen-booking')">
+                    <i class="fa-solid fa-calendar-check"></i> Записаться онлайн
+                </button>
+            </div>
+
+            <div class="info-cards">
+                <div class="info-card" onclick="showScreen('screen-prices')">
+                    <i class="fa-solid fa-tags"></i>
+                    <span>Услуги и цены</span>
+                </div>
+                <div class="info-card" onclick="showScreen('screen-contacts')">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span>Контакты и карта</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Экран 2: Цены -->
+        <section id="screen-prices" class="screen">
+            <h3><i class="fa-solid fa-list-check"></i> Наши услуги</h3>
+            <div class="price-list">
+                <div class="price-item">
+                    <div class="price-name">Сход-развал (3D стенд)</div>
+                    <div class="price-details">Длительность: ~1.5 часа</div>
+                    <div class="price-value">от 1 500 ₽</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-name">Замена масла</div>
+                    <div class="price-details">Длительность: ~1 час</div>
+                    <div class="price-value">1 000 ₽</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-name">Диагностика ходовой</div>
+                    <div class="price-details">Длительность: ~1 час</div>
+                    <div class="price-value">от 500 ₽</div>
+                </div>
+            </div>
+            <button class="btn btn-primary full-width" onclick="showScreen('screen-booking')">Записаться</button>
+        </section>
+
+        <!-- Экран 3: Запись (Пошаговая) -->
+        <section id="screen-booking" class="screen">
+            <h3>Онлайн-запись</h3>
+            
+            <div class="form-step" id="step1">
+                <label>1. Выберите услугу:</label>
+                <select id="serviceSelect" class="form-input" onchange="updateTimeSlots()">
+                    <option value="Сход-развал (3D стенд)">Сход-развал (3D стенд) — 1.5 ч</option>
+                    <option value="Замена масла">Замена масла — 1 ч</option>
+                    <option value="Диагностика ходовой">Диагностика ходовой — 1 ч</option>
+                </select>
+            </div>
+
+            <div class="form-step" id="step2">
+                <label>2. Ваш автомобиль:</label>
+                <input type="text" id="carModel" class="form-input" placeholder="Например: Kia Rio, 2020">
+            </div>
+
+            <div class="form-step" id="step3">
+                <label>3. Дата и время:</label>
+                <input type="date" id="bookingDate" class="form-input" onchange="updateTimeSlots()">
+                <div id="timeSlotsContainer" class="time-slots">
+                    <!-- Слоты генерируются JS -->
+                </div>
+                <input type="hidden" id="selectedTime">
+            </div>
+
+            <div class="form-step" id="step4">
+                <label>4. Ваши контакты:</label>
+                <input type="text" id="clientName" class="form-input" placeholder="Ваше имя">
+                <input type="tel" id="clientPhone" class="form-input" placeholder="+7 (___) ___-__-__">
+            </div>
+
+            <button class="btn btn-primary full-width" onclick="submitBooking()">Подтвердить запись</button>
+            <p class="form-note">Мастер свяжется с вами для точного подтверждения времени.</p>
+        </section>
+
+        <!-- Экран 4: Контакты -->
+        <section id="screen-contacts" class="screen">
+            <h3><i class="fa-solid fa-address-card"></i> Контакты</h3>
+            <div class="contact-block">
+                <p><i class="fa-solid fa-location-dot"></i> г. Альметьевск, ул. Защитников Отечества, 16Б (1 этаж)</p>
+                <p><i class="fa-solid fa-phone"></i> <a href="tel:+79874099185">+7 (987) 409-91-85</a></p>
+                <p><i class="fa-solid fa-clock"></i> Пн-Пт: 08:00-18:00<br>Сб: 08:00-17:00<br>Вс: 08:00-16:00</p>
+            </div>
+            <div class="action-buttons">
+                <a href="https://wa.me/79874099185" class="btn btn-whatsapp"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+                <a href="https://t.me/+79874099185" class="btn btn-telegram"><i class="fa-brands fa-telegram"></i> Telegram</a>
+            </div>
+            <!-- Вставка карты 2GIS (iframe) -->
+            <div class="map-container">
+                <iframe src="https://widgets.2gis.com/widget?type=firms&firmId=70000001037143884&theme=light" width="100%" height="300" frameborder="0"></iframe>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Нижняя навигация -->
+    <nav class="bottom-nav">
+        <button onclick="showScreen('screen-home')" class="nav-btn active"><i class="fa-solid fa-house"></i><span>Главная</span></button>
+        <button onclick="showScreen('screen-prices')" class="nav-btn"><i class="fa-solid fa-tags"></i><span>Цены</span></button>
+        <button onclick="showScreen('screen-booking')" class="nav-btn"><i class="fa-solid fa-calendar-plus"></i><span>Запись</span></button>
+        <button onclick="showScreen('screen-contacts')" class="nav-btn"><i class="fa-solid fa-map"></i><span>Контакты</span></button>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>
